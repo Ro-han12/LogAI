@@ -1,0 +1,269 @@
+# LogAI Webhook Testing Commands
+# ================================
+
+# Make sure your webhook server is running on port 8000
+# Make sure your test workflow server is running on port 3000
+
+# 1. HEALTH CHECKS
+# ================
+
+# Check webhook server health
+curl http://localhost:8000/health
+
+# Check test workflow server health
+curl http://localhost:3000/health
+
+# 2. GITHUB PULL REQUEST EVENTS
+# =============================
+
+# Test GitHub PR merge event (main branch)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":123,"title":"Test PR - Main Branch","merged":true,"base":{"ref":"main"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"abc123def456","merged_at":"2025-01-27T10:00:00Z","additions":100,"deletions":20,"changed_files":5},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR merge event (staging branch)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":124,"title":"Test PR - Staging Branch","merged":true,"base":{"ref":"staging"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"def456ghi789","merged_at":"2025-01-27T10:00:00Z","additions":75,"deletions":15,"changed_files":3},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR merge event (develop branch)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":125,"title":"Test PR - Develop Branch","merged":true,"base":{"ref":"develop"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"ghi789jkl012","merged_at":"2025-01-27T10:00:00Z","additions":200,"deletions":50,"changed_files":10},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR merge event (high risk - many changes)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":126,"title":"Major Feature Update","merged":true,"base":{"ref":"main"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"jkl012mno345","merged_at":"2025-01-27T10:00:00Z","additions":2000,"deletions":500,"changed_files":100},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR merge event (low risk - few changes)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":127,"title":"Small Bug Fix","merged":true,"base":{"ref":"main"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"mno345pqr678","merged_at":"2025-01-27T10:00:00Z","additions":10,"deletions":5,"changed_files":1},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR that should be ignored (non-target branch)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":128,"title":"Feature Branch Merge","merged":true,"base":{"ref":"feature-branch"},"head":{"ref":"another-feature"},"user":{"login":"testuser"},"merge_commit_sha":"pqr678stu901","merged_at":"2025-01-27T10:00:00Z","additions":50,"deletions":10,"changed_files":2},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitHub PR that should be ignored (not merged)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":129,"title":"Closed PR","merged":false,"base":{"ref":"main"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"","merged_at":"","additions":100,"deletions":20,"changed_files":5},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}'
+
+# 3. GITHUB PUSH EVENTS
+# =====================
+
+# Test GitHub push to main branch
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"ref":"refs/heads/main","repository":{"full_name":"Rohan-doodleblue/V0-Kulish"},"pusher":{"name":"testuser"},"head_commit":{"id":"abc123def456","message":"Direct push to main","timestamp":"2025-01-27T10:00:00Z"}}'
+
+# Test GitHub push to staging branch
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"ref":"refs/heads/staging","repository":{"full_name":"Rohan-doodleblue/V0-Kulish"},"pusher":{"name":"testuser"},"head_commit":{"id":"def456ghi789","message":"Direct push to staging","timestamp":"2025-01-27T10:00:00Z"}}'
+
+# Test GitHub push to develop branch
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"ref":"refs/heads/develop","repository":{"full_name":"Rohan-doodleblue/V0-Kulish"},"pusher":{"name":"testuser"},"head_commit":{"id":"ghi789jkl012","message":"Direct push to develop","timestamp":"2025-01-27T10:00:00Z"}}'
+
+# Test GitHub push to feature branch (should be ignored)
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"ref":"refs/heads/feature-branch","repository":{"full_name":"Rohan-doodleblue/V0-Kulish"},"pusher":{"name":"testuser"},"head_commit":{"id":"jkl012mno345","message":"Push to feature branch","timestamp":"2025-01-27T10:00:00Z"}}'
+
+# 4. GITLAB MERGE REQUEST EVENTS
+# ===============================
+
+# Test GitLab MR merge event (main branch)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"merge","iid":123,"title":"Test MR - Main Branch","target_branch":"main","source_branch":"feature-branch","merge_commit_sha":"abc123def456","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitLab MR merge event (staging branch)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"merge","iid":124,"title":"Test MR - Staging Branch","target_branch":"staging","source_branch":"feature-branch","merge_commit_sha":"def456ghi789","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitLab MR merge event (develop branch)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"merge","iid":125,"title":"Test MR - Develop Branch","target_branch":"develop","source_branch":"feature-branch","merge_commit_sha":"ghi789jkl012","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitLab MR that should be ignored (non-target branch)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"merge","iid":126,"title":"Feature Branch MR","target_branch":"feature-branch","source_branch":"another-feature","merge_commit_sha":"jkl012mno345","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}'
+
+# Test GitLab MR that should be ignored (not merged)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"close","iid":127,"title":"Closed MR","target_branch":"main","source_branch":"feature-branch","merge_commit_sha":"","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}'
+
+# 5. GITLAB PUSH EVENTS
+# =====================
+
+# Test GitLab push to main branch
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Push Hook" \
+  -d '{"ref":"refs/heads/main","project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"},"user_username":"testuser","checkout_sha":"abc123def456","commits":[{"message":"Direct push to main","timestamp":"2025-01-27T10:00:00Z"}]}'
+
+# Test GitLab push to staging branch
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Push Hook" \
+  -d '{"ref":"refs/heads/staging","project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"},"user_username":"testuser","checkout_sha":"def456ghi789","commits":[{"message":"Direct push to staging","timestamp":"2025-01-27T10:00:00Z"}]}'
+
+# Test GitLab push to develop branch
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Push Hook" \
+  -d '{"ref":"refs/heads/develop","project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"},"user_username":"testuser","checkout_sha":"ghi789jkl012","commits":[{"message":"Direct push to develop","timestamp":"2025-01-27T10:00:00Z"}]}'
+
+# Test GitLab push to feature branch (should be ignored)
+curl -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Push Hook" \
+  -d '{"ref":"refs/heads/feature-branch","project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"},"user_username":"testuser","checkout_sha":"jkl012mno345","commits":[{"message":"Push to feature branch","timestamp":"2025-01-27T10:00:00Z"}]}'
+
+# 6. ERROR TESTING
+# ================
+
+# Test with invalid JSON
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"invalid": json}'
+
+# Test with missing required headers
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -d '{"action":"closed","pull_request":{"merged":true}}'
+
+# Test with wrong event type
+curl -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: issues" \
+  -H "X-GitHub-Delivery: test-delivery-$(date +%s)" \
+  -d '{"action":"opened","issue":{"number":123,"title":"Test Issue"}}'
+
+# 7. WORKFLOW SERVER TESTING
+# ==========================
+
+# Test workflow server directly
+curl -X POST http://localhost:3000/api/workflows/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"event_type":"pr_merge","provider":"github","repository":"Rohan-doodleblue/V0-Kulish","branch":"main","pr_number":999,"pr_title":"Direct Workflow Test","author":"testuser","commit_sha":"abc123","merged_at":"2025-01-27T10:00:00Z","risk_level":"medium"}'
+
+# 8. BATCH TESTING SCRIPT
+# =======================
+
+# Run multiple tests in sequence
+echo "Running comprehensive webhook tests..."
+
+# Health checks
+echo "1. Health checks..."
+curl -s http://localhost:8000/health && echo ""
+curl -s http://localhost:3000/health && echo ""
+
+# GitHub PR tests
+echo "2. GitHub PR tests..."
+curl -s -X POST http://localhost:8000/webhooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: pull_request" \
+  -H "X-GitHub-Delivery: batch-test-$(date +%s)" \
+  -d '{"action":"closed","pull_request":{"number":200,"title":"Batch Test PR","merged":true,"base":{"ref":"main"},"head":{"ref":"feature-branch"},"user":{"login":"testuser"},"merge_commit_sha":"batch123","merged_at":"2025-01-27T10:00:00Z","additions":100,"deletions":20,"changed_files":5},"repository":{"full_name":"Rohan-doodleblue/V0-Kulish"}}' && echo ""
+
+# GitLab MR test
+echo "3. GitLab MR test..."
+curl -s -X POST http://localhost:8000/webhooks/gitlab \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Merge Request Hook" \
+  -d '{"object_attributes":{"action":"merge","iid":200,"title":"Batch Test MR","target_branch":"main","source_branch":"feature-branch","merge_commit_sha":"batch456","updated_at":"2025-01-27T10:00:00Z"},"user":{"username":"testuser"},"project":{"path_with_namespace":"Rohan-doodleblue/V0-Kulish"}}' && echo ""
+
+echo "Batch testing complete!"
+
+# 9. LOG MONITORING
+# =================
+
+# Monitor webhook server logs in real-time
+tail -f logs/webhook_server.log
+
+# Check recent webhook events
+tail -20 logs/webhook_server.log | grep "Received\|Triggering"
+
+# 10. PERFORMANCE TESTING
+# =======================
+
+# Test with multiple concurrent requests
+for i in {1..5}; do
+  curl -X POST http://localhost:8000/webhooks/github \
+    -H "Content-Type: application/json" \
+    -H "X-GitHub-Event: pull_request" \
+    -H "X-GitHub-Delivery: perf-test-$i-$(date +%s)" \
+    -d "{\"action\":\"closed\",\"pull_request\":{\"number\":$((300+i)),\"title\":\"Performance Test $i\",\"merged\":true,\"base\":{\"ref\":\"main\"},\"head\":{\"ref\":\"feature-branch\"},\"user\":{\"login\":\"testuser\"},\"merge_commit_sha\":\"perf$i\",\"merged_at\":\"2025-01-27T10:00:00Z\",\"additions\":50,\"deletions\":10,\"changed_files\":2},\"repository\":{\"full_name\":\"Rohan-doodleblue/V0-Kulish\"}}" &
+done
+
+# Wait for all background jobs to complete
+wait
+
+echo "Performance testing complete!"
+
+# ================================
+# USAGE INSTRUCTIONS
+# ================================
+
+# 1. Start your webhook server:
+#    python main.py
+
+# 2. Start your test workflow server:
+#    python test_workflow_server.py
+
+# 3. Run any of the curl commands above to test different scenarios
+
+# 4. Check the logs:
+#    tail -f logs/webhook_server.log
+
+# 5. Watch the test workflow server output for received events
+
+# Expected Results:
+# - Health checks should return {"status":"healthy"}
+# - Valid PR/MR events should return {"status":"processed"}
+# - Events to main/staging/develop branches should trigger workflows
+# - Events to feature branches should be ignored
+# - Non-merged PRs should be ignored
+# - Invalid requests should return error codes
+
+# Webhook Secret (if you want to test with signature verification):
+# 48319c7f26cfe02ef914e9424682d3b2e96174d5b8f5c1d838f09ddebdbdf35b
