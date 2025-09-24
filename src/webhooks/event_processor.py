@@ -146,13 +146,21 @@ class EventProcessor:
             logger.info(f"Triggering workflow: {trigger.url}")
             
             async with httpx.AsyncClient() as client:
-                response = await client.request(
-                    method=trigger.method,
-                    url=trigger.url,
-                    json=event_data,
-                    headers=trigger.headers,
-                    timeout=trigger.timeout
-                )
+                if (trigger.method or "POST").upper() == "POST":
+                    response = await client.post(
+                        trigger.url,
+                        json=event_data,
+                        headers=trigger.headers,
+                        timeout=trigger.timeout,
+                    )
+                else:
+                    response = await client.request(
+                        method=trigger.method,
+                        url=trigger.url,
+                        json=event_data,
+                        headers=trigger.headers,
+                        timeout=trigger.timeout,
+                    )
                 
                 response.raise_for_status()
                 logger.info(f"Workflow triggered successfully: {response.status_code}")
