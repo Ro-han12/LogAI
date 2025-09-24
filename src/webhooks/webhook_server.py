@@ -16,6 +16,8 @@ from pydantic import BaseModel, Field
 import httpx
 from loguru import logger
 
+from utils import prepare_and_push_post_merge_branch
+
 
 class ProviderType(str, Enum):
     """Supported webhook providers."""
@@ -91,11 +93,13 @@ class WebhookServer:
         ):
             """Handle GitHub webhooks."""
             try:
+                # Read raw body first for signature verification
+                raw_body = await request.body()
                 payload = await request.json()
                 
                 # Verify webhook signature if secret is configured
                 if self.config.github_secret and x_hub_signature_256:
-                    if not self._verify_github_signature(request, x_hub_signature_256):
+                    if not self._verify_github_signature_bytes(raw_body, x_hub_signature_256):
                         raise HTTPException(status_code=401, detail="Invalid signature")
                 
                 # Process the webhook event
@@ -103,6 +107,9 @@ class WebhookServer:
                 
                 return {"status": "processed"}
                 
+            except HTTPException:
+                # Let FastAPI handle intended HTTP errors
+                raise
             except Exception as e:
                 logger.error(f"Error processing GitHub webhook: {e}")
                 raise HTTPException(status_code=500, detail="Internal server error")
@@ -127,22 +134,21 @@ class WebhookServer:
                 
                 return {"status": "processed"}
                 
+            except HTTPException:
+                raise
             except Exception as e:
                 logger.error(f"Error processing GitLab webhook: {e}")
                 raise HTTPException(status_code=500, detail="Internal server error")
     
-    def _verify_github_signature(self, request: Request, signature: str) -> bool:
-        """Verify GitHub webhook signature."""
+    def _verify_github_signature_bytes(self, body: bytes, signature: str) -> bool:
+        """Verify GitHub webhook signature from raw body bytes."""
         if not self.config.github_secret:
             return False
-        
-        body = request._body
         expected_signature = "sha256=" + hmac.new(
             self.config.github_secret.encode(),
             body,
             hashlib.sha256
         ).hexdigest()
-        
         return hmac.compare_digest(signature, expected_signature)
     
     async def _process_github_event(self, event_type: str, payload: Dict[str, Any], delivery_id: str):
@@ -310,6 +316,10 @@ class WebhookServer:
             "changed_files_count": pr_event.changed_files_count
         }
         
+        # Auto-create post-merge branch if configured
+        if self.config.auto_create_post_merge_branch and self.config.post_merge_repo_path:
+            await self._create_post_merge_branch(pr_event)
+        
         # Send to workflow webhook if configured
         if self.config.workflow_webhook_url:
             try:
@@ -326,6 +336,33 @@ class WebhookServer:
         else:
             logger.info("No workflow webhook URL configured, logging event only")
             logger.info(f"Workflow payload: {json.dumps(workflow_payload, indent=2)}")
+    
+    async def _create_post_merge_branch(self, pr_event: PRMergeEvent):
+        """Create and push a post-merge branch representing the merged state."""
+        try:
+            logger.info(f"Creating post-merge branch for PR #{pr_event.pr_number}")
+            
+            # Generate branch name
+            branch_name = f"{self.config.post_merge_branch_prefix}/pr-{pr_event.pr_number}"
+            
+            # Determine source ref (use head_branch if available, otherwise commit_sha)
+            source_ref = pr_event.head_branch if pr_event.head_branch else pr_event.commit_sha
+            
+            # Create and push the post-merge branch
+            result = prepare_and_push_post_merge_branch(
+                repository_path=self.config.post_merge_repo_path,
+                base_branch=pr_event.branch,
+                new_branch=branch_name,
+                source_ref=f"{self.config.post_merge_remote_name}/{source_ref}",
+                remote_name=self.config.post_merge_remote_name,
+                push_force=False,
+                commit_message=f"Post-merge state for PR #{pr_event.pr_number}: {pr_event.pr_title}"
+            )
+            
+            logger.info(f"Successfully created post-merge branch: {result.remote_ref}")
+            
+        except Exception as e:
+            logger.error(f"Failed to create post-merge branch: {e}")
 
 
 def create_app(config: Optional[WebhookConfig] = None) -> FastAPI:
