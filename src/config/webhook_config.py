@@ -35,6 +35,12 @@ class WebhookConfig(BaseModel):
     workflow_webhook_url: Optional[str] = Field(default=None)
     workflow_timeout: int = Field(default=30)
     
+    # Post-merge branch settings
+    auto_create_post_merge_branch: bool = Field(default=False)
+    post_merge_repo_path: Optional[str] = Field(default=None)
+    post_merge_remote_name: str = Field(default="origin")
+    post_merge_branch_prefix: str = Field(default="post-merge")
+    
     # Server settings
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000)
@@ -50,6 +56,10 @@ class WebhookConfig(BaseModel):
             gitlab_webhook_url=os.getenv("GITLAB_WEBHOOK_URL", "http://localhost:8000/webhooks/gitlab"),
             workflow_webhook_url=os.getenv("WORKFLOW_WEBHOOK_URL"),
             workflow_timeout=int(os.getenv("WORKFLOW_TIMEOUT", "30")),
+            auto_create_post_merge_branch=os.getenv("AUTO_CREATE_POST_MERGE_BRANCH", "false").lower() == "true",
+            post_merge_repo_path=os.getenv("POST_MERGE_REPO_PATH"),
+            post_merge_remote_name=os.getenv("POST_MERGE_REMOTE_NAME", "origin"),
+            post_merge_branch_prefix=os.getenv("POST_MERGE_BRANCH_PREFIX", "post-merge"),
             host=os.getenv("HOST", "0.0.0.0"),
             port=int(os.getenv("PORT", "8000")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
